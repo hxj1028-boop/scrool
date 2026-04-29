@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新北市蘆洲區鷺江國小｜歲月光影</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&family=Noto+Serif+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS Reset & Base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-color: #050505;
+            --text-main: #e0e0e0;
+            --text-muted: #888888;
+            --accent-gold: #c5a059;
+            --font-serif: 'Noto Serif TC', serif;
+            --font-sans: 'Noto Sans TC', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            overflow-x: hidden;
+            line-height: 1.8;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* 復古膠卷雜訊 (Film Grain) */
+        .film-grain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9998;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.12;
+            mix-blend-mode: overlay;
+        }
+
+        /* 電影黑邊 (Letterbox) */
+        .letterbox {
+            position: fixed;
+            left: 0;
+            width: 100vw;
+            height: 6vh;
+            background: #000;
+            z-index: 9999;
+        }
+        .letterbox.top { top: 0; }
+        .letterbox.bottom { bottom: 0; }
+
+        /* 滾動揭示動畫初始狀態 */
+        .reveal {
+            opacity: 0;
+            transform: translateY(60px);
+            transition: all 1.2s cubic-bezier(0.215, 0.61, 0.355, 1);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .delay-1 { transition-delay: 0.2s; }
+        .delay-2 { transition-delay: 0.4s; }
+
+        /* 第一幕：全幅首頁 */
+        .hero {
+            position: relative;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            text-align: center;
+            padding: 0 20px;
+        }
+        
+        .hero-bg {
+            position: absolute;
+            top: -10%;
+            left: -10%;
+            width: 120%;
+            height: 120%;
+            background-image: url('https://raw.githubusercontent.com/hxj1028-boop/scrool/main/%E4%B8%8B%E8%BC%89.jpg');
+            background-size: cover;
+            background-position: center;
+            z-index: 1;
+            filter: brightness(0.4) contrast(1.1) grayscale(30%);
+            /* 將給 JS 控制視差 */
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+        }
+
+        .hero-title {
+            font-family: var(--font-serif);
+            font-size: clamp(3rem, 6vw, 5rem);
+            color: var(--accent-gold);
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            margin-bottom: 20px;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+
+        .hero-subtitle {
+            font-family: var(--font-serif);
+            font-size: clamp(1.2rem, 2vw, 1.8rem);
+            color: #ffffff;
+            font-weight: 400;
+            letter-spacing: 0.2em;
+            opacity: 0.9;
+        }
+
+        /* 敘事章節通用 (Split Layout) */
+        .chapter {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10vh 12vw;
+            gap: 8vw;
+            z-index: 10;
+            overflow: hidden;
+        }
+
+        .chapter:nth-child(even) {
+            flex-direction: row-reverse;
+            background: linear-gradient(to bottom, #050505, #0a0a0a);
+        }
+
+        /* 文本區塊 */
+        .text-content {
+            flex: 1;
+            max-width: 500px;
+        }
+
+        .chapter-title {
+            font-family: var(--font-serif);
+            font-size: 2.5rem;
+            color: var(--accent-gold);
+            margin-bottom: 30px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .chapter-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 40px;
+            height: 2px;
+            background-color: var(--accent-gold);
+        }
+
+        .chapter-desc {
+            font-size: 1.1rem;
+            color: var(--text-main);
+            text-align: justify;
+            letter-spacing: 0.05em;
+        }
+
+        /* 拍立得/畫框樣式 */
+        .image-wrapper {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            perspective: 1000px;
+        }
+
+        .polaroid {
+            background-color: #f4f4f4;
+            padding: 1.2vw 1.2vw 4.5vw 1.2vw;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.8), 0 0 15px rgba(0,0,0,0.5) inset;
+            transform: rotate(-3deg);
+            transition: transform 0.6s ease-out;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .chapter:nth-child(even) .polaroid {
+            transform: rotate(3deg);
+        }
+
+        .polaroid:hover {
+            transform: rotate(0deg) scale(1.02) !important;
+        }
+
+        .polaroid-img-container {
+            width: 100%;
+            padding-top: 66%; /* 3:2 aspect ratio */
+            position: relative;
+            overflow: hidden;
+            background: #111;
+        }
+
+        .polaroid img {
+            position: absolute;
+            top: -10%;
+            left: -10%;
+            width: 120%;
+            height: 120%;
+            object-fit: cover;
+            filter: grayscale(20%) sepia(10%);
+        }
+
+        /* 頁尾 */
+        footer {
+            padding: 10vh 20px 8vh 20px;
+            text-align: center;
+            font-family: var(--font-serif);
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+            position: relative;
+            z-index: 10;
+        }
+
+        .footer-links {
+            margin-bottom: 20px;
+            font-family: var(--font-sans);
+            letter-spacing: 0.05em;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.4s ease;
+            position: relative;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent-gold);
+        }
+
+        .footer-links .divider {
+            margin: 0 15px;
+            color: var(--text-muted);
+            opacity: 0.3;
+        }
+
+        /* RWD 響應式設計 */
+        @media (max-width: 992px) {
+            .chapter, .chapter:nth-child(even) {
+                flex-direction: column;
+                justify-content: center;
+                padding: 12vh 8vw;
+                text-align: center;
+                gap: 5vh;
+            }
+
+            .chapter-title::after {
+                left: 50%;
+                transform: translateX(-50%);
+            }
+
+            .polaroid {
+                transform: rotate(0deg) !important;
+                padding: 15px 15px 40px 15px;
+                max-width: 90vw;
+            }
+
+            .footer-links {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .footer-links .divider {
+                display: none; /* 手機版隱藏分隔線，改為上下排列 */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="film-grain"></div>
+    <div class="letterbox top"></div>
+    <div class="letterbox bottom"></div>
+
+    <section class="hero">
+        <div class="hero-bg parallax-bg" data-speed="0.4"></div>
+        <div class="hero-content">
+            <h1 class="hero-title reveal">鷺江國小</h1>
+            <p class="hero-subtitle reveal delay-1">歲月流轉中的知識微光</p>
+        </div>
+    </section>
+
+    <section class="chapter">
+        <div class="text-content">
+            <h2 class="chapter-title reveal">晨曦中的朗讀聲</h2>
+            <p class="chapter-desc reveal delay-1">
+                座落於蘆洲的靜謐一角，鷺江國小不僅是知識的殿堂，更是無數童年回憶的搖籃。當清晨的第一道陽光灑落在磚紅色的校舍，迴盪在走廊上的不僅是朗朗書聲，更是跨越世代、純粹而充滿力量的希望。每一塊地磚，都刻劃著歲月的痕跡與成長的笑語。
+            </p>
+        </div>
+        <div class="image-wrapper reveal delay-2">
+            <div class="polaroid">
+                <div class="polaroid-img-container">
+                    <img src="https://raw.githubusercontent.com/hxj1028-boop/scrool/main/453776197_8876595175689679_1372539993867621019_n.jpg" class="parallax-img" data-speed="0.15" alt="鷺江國小晨曦">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="chapter">
+        <div class="text-content">
+            <h2 class="chapter-title reveal">綠意與夢想的交織</h2>
+            <p class="chapter-desc reveal delay-1">
+                微風輕拂過操場邊的老樹，光影在繁茂的枝葉間跳躍。陽光穿透葉縫，細碎地灑落在孩子們奔跑的背影上。這裡是夢想啟航的地方，也是純真歲月最美的見證。大自然的綠意與孩子們的活力交織成一幅生動的畫卷，將每一瞬間的感動凝結於時光中。
+            </p>
+        </div>
+        <div class="image-wrapper reveal delay-2">
+            <div class="polaroid">
+                <div class="polaroid-img-container">
+                    <img src="https://raw.githubusercontent.com/hxj1028-boop/scrool/main/1587090889399YHnmW4VF.jpg" class="parallax-img" data-speed="0.15" alt="鷺江國小校園綠意">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="chapter">
+        <div class="text-content">
+            <h2 class="chapter-title reveal">傳承與創新的光芒</h2>
+            <p class="chapter-desc reveal delay-1">
+                在歷史的深厚沉澱中，我們依舊能看見耀眼的創新火花。鷺江國小堅守著百年的教育初衷，同時勇敢擁抱未來的無限可能。這裡不只是傳授知識的場所，更是引領每一個獨特靈魂探索世界、發掘自我的燈塔，讓每位學子都能在此散發專屬的光芒。
+            </p>
+        </div>
+        <div class="image-wrapper reveal delay-2">
+            <div class="polaroid">
+                <div class="polaroid-img-container">
+                    <img src="https://raw.githubusercontent.com/hxj1028-boop/scrool/main/images.jpg" class="parallax-img" data-speed="0.15" alt="鷺江國小教育傳承">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="chapter">
+        <div class="text-content">
+            <h2 class="chapter-title reveal">永恆的鷺江印象</h2>
+            <p class="chapter-desc reveal delay-1">
+                當放學的鐘聲再次悠揚響起，那是不變的溫暖呼喚。無論未來走得多遠、飛得多高，鷺江國小永遠是每個學子心中最安心的歸屬。這是一首未完待續的青春詩篇，伴隨著每一代鷺江人的腳步，繼續在歲月的長河中輕聲傳唱。
+            </p>
+        </div>
+        <div class="image-wrapper reveal delay-2">
+            <div class="polaroid">
+                <div class="polaroid-img-container">
+                    <img src="https://raw.githubusercontent.com/hxj1028-boop/scrool/main/%E4%B8%8B%E8%BC%89.jpg" class="parallax-img" data-speed="0.15" alt="鷺江國小永恆印象">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="reveal">
+            <div class="footer-links">
+                <a href="https://www.lcps.ntpc.edu.tw/" target="_blank" rel="noopener noreferrer">鷺江國小官方網站</a>
+                <span class="divider">|</span>
+                <a href="https://www.facebook.com/groups/374521960452/" target="_blank" rel="noopener noreferrer">官方 Facebook 社團</a>
+            </div>
+            <p>【翊華程式設計 | 網頁與作品及製作】</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. 滾動揭示動畫 (Intersection Observer)
+            const revealElements = document.querySelectorAll('.reveal');
+            
+            const revealObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                        observer.unobserve(entry.target); // 動畫只需執行一次
+                    }
+                });
+            }, {
+                root: null,
+                threshold: 0.15, // 元素出現 15% 時觸發
+                rootMargin: "0px 0px -50px 0px"
+            });
+
+            revealElements.forEach(el => revealObserver.observe(el));
+
+            // 2. 視差滾動效果 (Parallax Scroll)
+            const parallaxBgs = document.querySelectorAll('.parallax-bg');
+            const parallaxImgs = document.querySelectorAll('.parallax-img');
+
+            window.addEventListener('scroll', () => {
+                let scrollY = window.pageYOffset;
+
+                // 全幅首頁背景視差
+                parallaxBgs.forEach(bg => {
+                    let speed = bg.getAttribute('data-speed');
+                    bg.style.transform = `translateY(${scrollY * speed}px)`;
+                });
+
+                // 畫框內圖片的微小視差 (創造深度感)
+                parallaxImgs.forEach(img => {
+                    // 計算圖片相對於視窗的距離
+                    let rect = img.getBoundingClientRect();
+                    let centerOffset = (rect.top + rect.height / 2) - (window.innerHeight / 2);
+                    let speed = img.getAttribute('data-speed');
+                    
+                    // 限制最大位移範圍，避免圖片跑出容器
+                    let yPos = centerOffset * speed;
+                    img.style.transform = `translateY(${-yPos}px)`;
+                });
+            });
+            
+            // 頁面載入時觸發一次 scroll 以初始化視差位置
+            window.dispatchEvent(new Event('scroll'));
+        });
+    </script>
+</body>
+</html>
